@@ -21,7 +21,7 @@ class ClipboardBackend(ABC):
 
 class InputBackend(ABC):
     @abstractmethod
-    def paste(self, terminal: bool = False) -> None:
+    def paste(self, terminal: bool = False, window_id: str = "") -> None:
         """Simulate Ctrl+V (or Ctrl+Shift+V for terminals)."""
 
     @abstractmethod

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
 import threading
 
 from gi.repository import GLib
@@ -12,7 +14,22 @@ from voitype.state import STATE
 from voitype.ui.overlay import OverlayState
 
 
+def _capture_active_window() -> None:
+    """Save the currently active window ID before overlay appears."""
+    try:
+        env = os.environ.copy()
+        env.setdefault("DISPLAY", ":0")
+        r = subprocess.run(
+            ["xdotool", "getactivewindow"],
+            capture_output=True, text=True, timeout=1, env=env,
+        )
+        STATE.target_window = r.stdout.strip()
+    except Exception:
+        STATE.target_window = ""
+
+
 def on_dictation_start() -> None:
+    _capture_active_window()
     if not audio.start_recording():
         notify.mic_error()
         return
@@ -36,6 +53,7 @@ def on_dictation_stop() -> None:
 
 
 def on_rewrite_start() -> None:
+    _capture_active_window()
     if not audio.start_recording():
         notify.mic_error()
         return
@@ -80,6 +98,7 @@ def _process_dictation(raw_audio) -> None:
 
         clipboard.type_text(text)
         GLib.idle_add(_set_overlay, OverlayState.DONE)
+        GLib.idle_add(_show_result, text)
     except Exception as e:
         GLib.idle_add(_set_overlay, OverlayState.ERROR, str(e)[:40])
         notify.api_error(str(e))
@@ -110,12 +129,19 @@ def _process_rewrite(raw_audio) -> None:
         result = formatter.format_rewrite(instruction, selected)
         clipboard.paste_text(result)
         GLib.idle_add(_set_overlay, OverlayState.DONE)
+        GLib.idle_add(_show_result, result)
     except Exception as e:
         GLib.idle_add(_set_overlay, OverlayState.ERROR, str(e)[:40])
         notify.api_error(str(e))
     finally:
         STATE.processing = False
         GLib.idle_add(_update_tray, False)
+
+
+def _show_result(text: str) -> bool:
+    if STATE.result_popup is not None:
+        STATE.result_popup.show_result(text)
+    return False
 
 
 def _set_overlay(state: OverlayState, error_msg: str = "") -> bool:

@@ -26,6 +26,8 @@ class AppState:
     processing: bool = False
     audio_buffer: list[np.ndarray] = field(default_factory=list)
     recording_start_time: float = 0.0
+    target_window: str = ""  # X11 window ID to paste into
+    result_popup: Any = None
 
     # Persisted settings
     formatting_enabled: bool = True
@@ -33,6 +35,7 @@ class AppState:
     hotkey_dictation: str = CFG.DEFAULT_HOTKEY_DICTATION
     hotkey_modifier: str = CFG.DEFAULT_HOTKEY_MODIFIER
     api_key: str = ""
+    audio_device: int = -1  # -1 = system default
 
     # UI references (set at runtime)
     overlay: Any = None
@@ -52,6 +55,8 @@ class AppState:
                 for key in ("hotkey_dictation", "hotkey_modifier", "api_key"):
                     if key in data and isinstance(data[key], str):
                         setattr(self, key, data[key])
+                if "audio_device" in data and isinstance(data["audio_device"], int):
+                    self.audio_device = data["audio_device"]
             except (json.JSONDecodeError, OSError):
                 pass
 
@@ -63,6 +68,7 @@ class AppState:
             "hotkey_dictation": self.hotkey_dictation,
             "hotkey_modifier": self.hotkey_modifier,
             "api_key": self.api_key,
+            "audio_device": self.audio_device,
         }
         try:
             path.write_text(json.dumps(data, indent=2))

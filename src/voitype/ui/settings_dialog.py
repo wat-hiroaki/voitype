@@ -7,6 +7,8 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
+import sounddevice as sd
+
 from voitype.state import STATE
 
 
@@ -68,6 +70,28 @@ class SettingsDialog(Gtk.Dialog):
         api_frame.add(api_box)
         content.pack_start(api_frame, False, False, 0)
 
+        # Microphone
+        mic_frame = Gtk.Frame(label="Microphone")
+        mic_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        mic_box.set_margin_start(8)
+        mic_box.set_margin_end(8)
+        mic_box.set_margin_top(8)
+        mic_box.set_margin_bottom(8)
+        self._mic_combo = Gtk.ComboBoxText()
+        self._mic_combo.append("-1", "System Default")
+        active_id = "-1"
+        for i, d in enumerate(sd.query_devices()):
+            if d["max_input_channels"] > 0 and "hw:" in d["name"]:
+                name = d["name"].split(":")[0].strip()
+                label = f"{name} ({d['max_input_channels']}ch)"
+                self._mic_combo.append(str(i), label)
+                if i == STATE.audio_device:
+                    active_id = str(i)
+        self._mic_combo.set_active_id(active_id)
+        mic_box.pack_start(self._mic_combo, True, True, 0)
+        mic_frame.add(mic_box)
+        content.pack_start(mic_frame, False, False, 0)
+
         # Hotkeys
         hotkey_frame = Gtk.Frame(label="Hotkeys")
         hotkey_grid = Gtk.Grid()
@@ -115,10 +139,12 @@ class SettingsDialog(Gtk.Dialog):
         return combo
 
     def get_values(self) -> dict:
+        mic_id = self._mic_combo.get_active_id()
         return {
             "api_key": self._api_entry.get_text().strip(),
             "hotkey_dictation": self._dictation_combo.get_active_text() or STATE.hotkey_dictation,
             "hotkey_modifier": self._modifier_combo.get_active_text() or STATE.hotkey_modifier,
+            "audio_device": int(mic_id) if mic_id is not None else -1,
         }
 
 
@@ -140,6 +166,9 @@ def show_settings() -> None:
             changed = True
         if values["hotkey_modifier"] != STATE.hotkey_modifier:
             STATE.hotkey_modifier = values["hotkey_modifier"]
+            changed = True
+        if values["audio_device"] != STATE.audio_device:
+            STATE.audio_device = values["audio_device"]
             changed = True
         if changed:
             STATE.save_settings()

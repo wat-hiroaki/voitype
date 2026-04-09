@@ -41,7 +41,7 @@ class WaylandClipboard(ClipboardBackend):
 
 
 class WaylandInput(InputBackend):
-    def paste(self, terminal: bool = False) -> None:
+    def paste(self, terminal: bool = False, window_id: str = "") -> None:
         try:
             if terminal:
                 subprocess.run(

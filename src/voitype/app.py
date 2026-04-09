@@ -55,6 +55,10 @@ def main() -> None:
     overlay = StatusOverlay()
     STATE.overlay = overlay
 
+    from voitype.ui.result_popup import ResultPopup
+    result_popup = ResultPopup()
+    STATE.result_popup = result_popup
+
     def quit_app() -> None:
         keyboard_handler.stop()
         Gtk.main_quit()

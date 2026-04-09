@@ -14,7 +14,7 @@ class Config:
     MIN_RECORDING_SECS: float = 0.3
 
     # Groq models
-    MODEL_WHISPER: str = "whisper-large-v3"
+    MODEL_WHISPER: str = "whisper-large-v3-turbo"
     MODEL_LLM: str = "llama-3.3-70b-versatile"
 
     # LLM prompts

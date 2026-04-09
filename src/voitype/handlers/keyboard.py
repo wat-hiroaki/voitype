@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import selectors
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
@@ -80,7 +81,7 @@ class KeyboardHandler:
                                 try:
                                     self._handle_key(event)
                                 except Exception as e:
-                                    print(f"Key handler error: {e}")
+                                    print(f"Key handler error: {e}", file=sys.stderr, flush=True)
                     except OSError:
                         sel.unregister(device)
                         device.close()
