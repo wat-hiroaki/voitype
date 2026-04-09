@@ -6,12 +6,16 @@ Powered by [Groq](https://groq.com/) for lightning-fast speech recognition (Whis
 
 ## Features
 
-- **Voice Dictation** — Hold Right Alt, speak, release. Formatted text appears at your cursor.
-- **Smart Rewrite** — Select text, hold Left Alt + Right Alt, give voice instructions. The selected text is rewritten accordingly.
-- **AI Text Formatting** — Automatic grammar, punctuation, and paragraph formatting via LLM. Can be toggled off for raw transcription.
+- **Voice Dictation** — Hold a hotkey, speak, release. Formatted text appears at your cursor.
+- **Smart Rewrite** — Select text, hold modifier + hotkey, give voice instructions. The selected text is rewritten accordingly.
+- **AI Text Formatting** — Automatic filler removal, self-correction resolution, grammar, punctuation, and paragraph formatting via LLM. Can be toggled off for raw transcription.
+- **Real-time Feedback** — Visual overlay shows recording, processing, done, and error states. Sound feedback on start/stop. Desktop notifications for errors.
+- **Cancel with Escape** — Press Esc during recording to cancel.
+- **Configurable Hotkeys** — Change the dictation key and modifier via Settings dialog. Defaults to Right Alt (dictation) and Left Alt (rewrite modifier).
 - **Multi-language** — Supports Japanese, English, and any language Whisper recognizes.
-- **X11 + Wayland** — Works on both display servers. Auto-detects your session.
-- **System Tray** — Status indicator with settings and hotkey reference.
+- **X11 + Wayland** — Works on both display servers. Auto-detects your session. Terminal detection for Sway, Hyprland, and niri.
+- **System Tray** — Status indicator with settings, formatting/sound toggles, and hotkey reference.
+- **Settings Dialog** — Configure API key, hotkeys, and more from the GUI.
 - **Privacy** — No data stored. Audio is sent to Groq API for processing and discarded.
 
 ## Requirements
@@ -41,44 +45,59 @@ The setup script will:
 GROQ_API_KEY=your_api_key_here .venv/bin/voitype
 ```
 
-Or export the key in your shell profile:
+Or configure the API key via the Settings dialog (saved to `~/.config/voitype/settings.json`).
 
-```bash
-echo 'export GROQ_API_KEY=your_api_key_here' >> ~/.bashrc
-source ~/.bashrc
-.venv/bin/voitype
-```
-
-### Hotkeys
+### Hotkeys (defaults)
 
 | Key | Action |
 |-----|--------|
 | **Right Alt** (hold) | Voice dictation — speak and release to paste formatted text |
 | **Left Alt + Right Alt** (hold) | Smart rewrite — select text first, then speak rewrite instructions |
+| **Esc** | Cancel current recording |
+
+Hotkeys can be changed in Settings (accessible from the system tray icon).
+
+### Visual Feedback
+
+| State | Overlay |
+|-------|---------|
+| Recording | Red pulsing dot — "Recording..." |
+| Recording (Rewrite) | Orange pulsing dot — "Recording (Rewrite)..." |
+| Processing | Blue spinner — "Processing..." |
+| Done | Green checkmark — auto-hides after 0.8s |
+| Error | Red X — shows error message, auto-hides after 2.5s |
 
 ### System Tray
 
-Right-click the microphone icon in your system tray to:
+Click the microphone icon in your system tray to:
 - Toggle AI text formatting on/off
+- Toggle sound feedback on/off
 - View hotkey reference
+- Open Settings dialog
 - Quit the application
 
 ## How It Works
 
 1. **Record** — Holding the hotkey captures audio from your microphone
 2. **Transcribe** — Audio is sent to Groq's Whisper API for fast speech-to-text
-3. **Format** — The transcription is cleaned up by an LLM (grammar, punctuation, structure)
+3. **Format** — The transcription is cleaned up by an LLM (filler removal, self-corrections, grammar, punctuation, paragraphs)
 4. **Paste** — The formatted text is pasted at your cursor position via clipboard
 
 ## Configuration
 
 Settings are stored in `~/.config/voitype/settings.json`:
 
-- `formatting_enabled` — Enable/disable AI text formatting (default: `true`)
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `formatting_enabled` | AI text formatting | `true` |
+| `sound_enabled` | Sound feedback on record start/stop | `true` |
+| `hotkey_dictation` | Dictation hotkey (evdev key name) | `KEY_RIGHTALT` |
+| `hotkey_modifier` | Rewrite modifier key | `KEY_LEFTALT` |
+| `api_key` | Groq API key (alternative to env var) | `""` |
 
 ## Troubleshooting
 
-### "No keyboard devices found"
+### "No keyboard devices found" / Hotkeys not working
 
 Your user needs to be in the `input` group:
 
@@ -87,13 +106,18 @@ sudo usermod -aG input $USER
 # Log out and log back in
 ```
 
-### "GROQ_API_KEY environment variable is not set"
+### API key dialog on every launch
 
-Get a free API key at [console.groq.com/keys](https://console.groq.com/keys) and set it:
+Set the key permanently via environment variable or the Settings dialog:
 
 ```bash
-export GROQ_API_KEY=your_key_here
+echo 'export GROQ_API_KEY=your_key_here' >> ~/.bashrc
+source ~/.bashrc
 ```
+
+### Right Alt conflicts with AltGr (international keyboards)
+
+Open Settings from the tray icon and change the dictation key to another key (e.g., `KEY_F13`, `KEY_SCROLLLOCK`, or `KEY_PAUSE`). Restart VoiType after changing hotkeys.
 
 ### No system tray icon
 

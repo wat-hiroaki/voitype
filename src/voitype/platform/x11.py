@@ -56,6 +56,15 @@ class X11Input(InputBackend):
         except (subprocess.SubprocessError, FileNotFoundError):
             pass
 
+    def copy(self) -> None:
+        try:
+            subprocess.run(
+                ["xdotool", "key", "--clearmodifiers", "ctrl+c"],
+                timeout=2,
+            )
+        except (subprocess.SubprocessError, FileNotFoundError):
+            pass
+
     def is_terminal(self) -> bool:
         try:
             result = subprocess.run(

@@ -7,6 +7,7 @@ from voitype.groq_client import get_client
 
 
 def format_dictation(raw_text: str) -> str:
+    """Format transcription via LLM. Raises RuntimeError on API failure."""
     prompt = CFG.PROMPT_DICTATION.format(text=raw_text)
     try:
         response = get_client().chat.completions.create(
@@ -18,11 +19,11 @@ def format_dictation(raw_text: str) -> str:
         result = response.choices[0].message.content
         return result.strip() if result else raw_text
     except Exception as e:
-        print(f"Formatting error: {e}")
-        return raw_text
+        raise RuntimeError(f"Formatting failed: {e}") from e
 
 
 def format_rewrite(instruction: str, original: str) -> str:
+    """Rewrite text via LLM. Raises RuntimeError on API failure."""
     prompt = CFG.PROMPT_REWRITE.format(instruction=instruction, original=original)
     try:
         response = get_client().chat.completions.create(
@@ -34,5 +35,4 @@ def format_rewrite(instruction: str, original: str) -> str:
         result = response.choices[0].message.content
         return result.strip() if result else original
     except Exception as e:
-        print(f"Rewrite error: {e}")
-        return original
+        raise RuntimeError(f"Rewrite failed: {e}") from e

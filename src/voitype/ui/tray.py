@@ -22,8 +22,9 @@ from voitype.state import STATE
 
 
 class TrayIcon:
-    def __init__(self, on_quit: Callable[[], None]) -> None:
+    def __init__(self, on_quit: Callable[[], None], on_settings: Callable[[], None]) -> None:
         self._on_quit = on_quit
+        self._on_settings = on_settings
         self._indicator = None
         self._status_item: Gtk.MenuItem | None = None
 
@@ -58,22 +59,36 @@ class TrayIcon:
         fmt_item.connect("toggled", self._on_formatting_toggled)
         menu.append(fmt_item)
 
+        # Sound toggle
+        snd_item = Gtk.CheckMenuItem(label="Sound Feedback")
+        snd_item.set_active(STATE.sound_enabled)
+        snd_item.connect("toggled", self._on_sound_toggled)
+        menu.append(snd_item)
+
         menu.append(Gtk.SeparatorMenuItem())
 
-        # Help
+        # Hotkey info
         help_item = Gtk.MenuItem(label="Hotkeys")
         help_submenu = Gtk.Menu()
 
-        dictation_item = Gtk.MenuItem(label="Right Alt (hold): Dictation")
-        dictation_item.set_sensitive(False)
-        help_submenu.append(dictation_item)
-
-        rewrite_item = Gtk.MenuItem(label="Left Alt + Right Alt (hold): Rewrite")
-        rewrite_item.set_sensitive(False)
-        help_submenu.append(rewrite_item)
+        for label in (
+            f"{STATE.hotkey_dictation} (hold): Dictation",
+            f"{STATE.hotkey_modifier} + {STATE.hotkey_dictation} (hold): Rewrite",
+            "Esc: Cancel recording",
+        ):
+            item = Gtk.MenuItem(label=label)
+            item.set_sensitive(False)
+            help_submenu.append(item)
 
         help_item.set_submenu(help_submenu)
         menu.append(help_item)
+
+        menu.append(Gtk.SeparatorMenuItem())
+
+        # Settings
+        settings_item = Gtk.MenuItem(label="Settings...")
+        settings_item.connect("activate", lambda _: self._on_settings())
+        menu.append(settings_item)
 
         menu.append(Gtk.SeparatorMenuItem())
 
@@ -87,6 +102,10 @@ class TrayIcon:
 
     def _on_formatting_toggled(self, item: Gtk.CheckMenuItem) -> None:
         STATE.formatting_enabled = item.get_active()
+        STATE.save_settings()
+
+    def _on_sound_toggled(self, item: Gtk.CheckMenuItem) -> None:
+        STATE.sound_enabled = item.get_active()
         STATE.save_settings()
 
     def set_processing(self, processing: bool) -> None:

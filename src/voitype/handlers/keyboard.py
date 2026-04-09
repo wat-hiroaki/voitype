@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import selectors
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import evdev
-from evdev import InputDevice, categorize, ecodes
+from evdev import InputDevice, ecodes
+
+from voitype.state import STATE
 
 
-# Right Alt = KEY_RIGHTALT (100), Left Alt = KEY_LEFTALT (56)
-KEY_RIGHT_ALT = ecodes.KEY_RIGHTALT
-KEY_LEFT_ALT = ecodes.KEY_LEFTALT
+def _resolve_keycode(name: str) -> int:
+    """Convert a key name like 'KEY_RIGHTALT' to its evdev keycode."""
+    return getattr(ecodes, name)
 
 
 class KeyboardHandler:
@@ -22,15 +24,19 @@ class KeyboardHandler:
         on_dictation_stop: Callable[[], None],
         on_rewrite_start: Callable[[], None],
         on_rewrite_stop: Callable[[], None],
+        on_cancel: Callable[[], None],
     ) -> None:
         self._on_dictation_start = on_dictation_start
         self._on_dictation_stop = on_dictation_stop
         self._on_rewrite_start = on_rewrite_start
         self._on_rewrite_stop = on_rewrite_stop
-        self._left_alt_held = False
-        self._right_alt_held = False
+        self._on_cancel = on_cancel
+        self._modifier_held = False
+        self._hotkey_held = False
         self._active_mode: str | None = None  # "dictation" or "rewrite"
         self._running = False
+        self._hotkey_code = _resolve_keycode(STATE.hotkey_dictation)
+        self._modifier_code = _resolve_keycode(STATE.hotkey_modifier)
 
     def _find_keyboards(self) -> list[InputDevice]:
         keyboards = []
@@ -40,7 +46,6 @@ class KeyboardHandler:
                 caps = dev.capabilities(verbose=False)
                 if ecodes.EV_KEY in caps:
                     key_caps = caps[ecodes.EV_KEY]
-                    # Must have common keys to be a keyboard
                     if ecodes.KEY_A in key_caps or ecodes.KEY_F1 in key_caps:
                         keyboards.append(dev)
                     else:
@@ -56,12 +61,8 @@ class KeyboardHandler:
         self._running = True
         keyboards = self._find_keyboards()
         if not keyboards:
-            print(
-                "WARNING: No keyboard devices found. "
-                "Make sure your user is in the 'input' group:\n"
-                "  sudo usermod -aG input $USER\n"
-                "Then log out and log back in."
-            )
+            from voitype.services import notify
+            notify.no_keyboards()
             return
 
         sel = selectors.DefaultSelector()
@@ -81,7 +82,6 @@ class KeyboardHandler:
                                 except Exception as e:
                                     print(f"Key handler error: {e}")
                     except OSError:
-                        # Device disconnected
                         sel.unregister(device)
                         device.close()
         finally:
@@ -97,26 +97,32 @@ class KeyboardHandler:
 
     def _handle_key(self, event: evdev.InputEvent) -> None:
         key_code = event.code
-        # value: 0=up, 1=down, 2=hold/repeat
-        is_down = event.value in (1, 2)
+        is_down = event.value in (1, 2)  # press or hold/repeat
         is_up = event.value == 0
 
-        if key_code == KEY_LEFT_ALT:
-            self._left_alt_held = is_down
-        elif key_code == KEY_RIGHT_ALT:
-            if is_down and not self._right_alt_held:
-                # Key just pressed
-                self._right_alt_held = True
+        # Escape to cancel recording
+        if key_code == ecodes.KEY_ESC and event.value == 1 and self._active_mode is not None:
+            self._cancel_recording()
+            return
+
+        if key_code == self._modifier_code:
+            self._modifier_held = is_down
+        elif key_code == self._hotkey_code:
+            if is_down and not self._hotkey_held:
+                self._hotkey_held = True
                 self._start_recording()
-            elif is_up and self._right_alt_held:
-                # Key released
-                self._right_alt_held = False
+            elif is_up and self._hotkey_held:
+                self._hotkey_held = False
                 self._stop_recording()
 
     def _start_recording(self) -> None:
         if self._active_mode is not None:
             return
-        if self._left_alt_held:
+        if STATE.processing:
+            from voitype.services import notify
+            notify.busy()
+            return
+        if self._modifier_held:
             self._active_mode = "rewrite"
             self._on_rewrite_start()
         else:
@@ -129,3 +135,8 @@ class KeyboardHandler:
         elif self._active_mode == "rewrite":
             self._on_rewrite_stop()
         self._active_mode = None
+
+    def _cancel_recording(self) -> None:
+        self._on_cancel()
+        self._active_mode = None
+        self._hotkey_held = False

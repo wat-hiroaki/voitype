@@ -25,5 +25,9 @@ class InputBackend(ABC):
         """Simulate Ctrl+V (or Ctrl+Shift+V for terminals)."""
 
     @abstractmethod
+    def copy(self) -> None:
+        """Simulate Ctrl+C to copy selection to clipboard."""
+
+    @abstractmethod
     def is_terminal(self) -> bool:
         """Check if the focused window is a terminal."""

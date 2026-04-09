@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import time
 
 import numpy as np
 import sounddevice as sd
@@ -34,11 +35,12 @@ def start_recording() -> bool:
         )
         _stream.start()
     except Exception as e:
-        print(f"Recording error (microphone unavailable?): {e}")
+        print(f"Recording error: {e}")
         _stream = None
         STATE.recording = False
         return False
     STATE.recording = True
+    STATE.recording_start_time = time.monotonic()
     return True
 
 
@@ -56,8 +58,15 @@ def stop_recording() -> np.ndarray | None:
     return audio
 
 
+def recording_duration() -> float:
+    """Return how long the current/last recording lasted in seconds."""
+    if STATE.recording_start_time <= 0:
+        return 0.0
+    return time.monotonic() - STATE.recording_start_time
+
+
 def transcribe(audio: np.ndarray) -> str | None:
-    # Convert float32 audio to int16 WAV
+    """Transcribe audio via Groq Whisper. Returns None on failure or hallucination."""
     audio_mono = audio[:, 0] if audio.ndim > 1 else audio
     audio_int16 = np.clip(audio_mono * 32767, -32768, 32767).astype(np.int16)
 
@@ -73,12 +82,11 @@ def transcribe(audio: np.ndarray) -> str | None:
         )
         text = transcript.text.strip()
     except Exception as e:
-        print(f"Transcription error: {e}")
-        return None
+        raise RuntimeError(f"Transcription failed: {e}") from e
 
-    # Filter hallucinations
     if len(text) < CFG.MIN_TRANSCRIPTION_LENGTH:
         return None
+
     text_lower = text.lower().rstrip(".!?、。")
     if any(text_lower.startswith(h) for h in CFG.HALLUCINATION_PHRASES):
         return None
