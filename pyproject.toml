@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "voitype"
+version = "1.0.0"
+description = "Voice-to-text dictation for Linux with AI-powered text formatting"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "sounddevice",
+    "numpy<2",
+    "scipy",
+    "groq",
+    "evdev",
+    "PyGObject",
+    "pycairo",
+]
+
+[project.scripts]
+voitype = "voitype.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
