@@ -12,10 +12,12 @@ Powered by [Groq](https://groq.com/) for lightning-fast speech recognition (Whis
 - **Real-time Feedback** — Visual overlay shows recording, processing, done, and error states. Sound feedback on start/stop. Desktop notifications for errors.
 - **Cancel with Escape** — Press Esc during recording to cancel.
 - **Configurable Hotkeys** — Change the dictation key and modifier via Settings dialog. Defaults to Right Alt (dictation) and Left Alt (rewrite modifier).
+- **Result Popup** — Transcribed text appears in a floating popup. Click to copy to clipboard if auto-paste doesn't work in certain apps.
+- **Microphone Selection** — Choose your input device from the Settings dialog. Automatic sample rate fallback for device compatibility.
 - **Multi-language** — Supports Japanese, English, and any language Whisper recognizes.
 - **X11 + Wayland** — Works on both display servers. Auto-detects your session. Terminal detection for Sway, Hyprland, and niri.
 - **System Tray** — Status indicator with settings, formatting/sound toggles, and hotkey reference.
-- **Settings Dialog** — Configure API key, hotkeys, and more from the GUI.
+- **Settings Dialog** — Configure API key, hotkeys, microphone, and more from the GUI.
 - **Privacy** — No data stored. Audio is sent to Groq API for processing and discarded.
 
 ## Requirements
@@ -28,7 +30,7 @@ Powered by [Groq](https://groq.com/) for lightning-fast speech recognition (Whis
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/voitype.git
+git clone https://github.com/wat-hiroaki/voitype.git
 cd voitype
 chmod +x setup.sh
 ./setup.sh
@@ -94,6 +96,7 @@ Settings are stored in `~/.config/voitype/settings.json`:
 | `hotkey_dictation` | Dictation hotkey (evdev key name) | `KEY_RIGHTALT` |
 | `hotkey_modifier` | Rewrite modifier key | `KEY_LEFTALT` |
 | `api_key` | Groq API key (alternative to env var) | `""` |
+| `audio_device` | Microphone device index (-1 = system default) | `-1` |
 
 ## Troubleshooting
 
